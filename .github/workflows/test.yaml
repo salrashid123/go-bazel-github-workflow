@@ -35,7 +35,7 @@ jobs:
           repository-cache: true
 
       - name: Bazel Build
-        run: build --crosstool_top=@bazel_tools//tools/cpp:toolchain --cpu=k8 app:server
+        run: bazel build --crosstool_top=@bazel_tools//tools/cpp:toolchain --cpu=k8 app:server
 
       - name: Bazel Test
-        run: test app:go_default_test
+        run: bazel test app:go_default_test

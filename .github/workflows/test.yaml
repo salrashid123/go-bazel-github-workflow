@@ -35,7 +35,7 @@ jobs:
           repository-cache: true
 
       - name: Bazel Build
-        run: bazelisk build app:server
+        run: bazel build app:server
 
       - name: Bazel Test
-        run: bazelisk test app:go_default_test
+        run: bazel test app:go_default_test

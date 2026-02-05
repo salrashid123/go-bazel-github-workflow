@@ -1,0 +1,143 @@
+load("@rules_go//go:def.bzl", "go_binary", "go_library", "go_cross_binary", "go_test")
+
+load("@rules_pkg//:pkg.bzl", "pkg_tar")
+load("@rules_oci//oci:defs.bzl", "oci_image", "oci_push",  "oci_image_index")
+
+load("@gazelle//:def.bzl", "gazelle")
+load("//:transition.bzl", "multi_arch")
+
+
+gazelle(name = "gazelle")
+
+platform(
+    name = "linux_arm",
+    constraint_values = [
+        "@platforms//os:linux",
+        "@platforms//cpu:aarch64",
+    ],
+)
+
+platform(
+    name = "linux_x86",
+    constraint_values = [
+        "@platforms//os:linux",
+        "@platforms//cpu:x86_64",
+    ],
+)
+
+alias(
+    name = "linux_amd64",
+    actual = ":linux_x86",
+    visibility = ["//visibility:public"],
+)
+
+alias(
+    name = "linux_arm64",
+    actual = ":linux_arm",
+    visibility = ["//visibility:public"],
+)
+
+go_binary(
+    name = "server",
+    embed = [":go_default_library"],
+    visibility = ["//visibility:public"],
+    #goos = "linux",
+    #goarch = "amd64",
+)
+
+go_library(
+    name = "go_default_library",
+    srcs = ["server.go"],
+    importpath = "app",
+    visibility = ["//visibility:private"],
+    deps = [    
+        "@com_github_gorilla_mux//:go_default_library",      
+    ],
+)
+
+
+go_test(
+    name = "go_default_test",
+    srcs = ["server_test.go"],
+    timeout = "short",    
+    embed = [":go_default_library"],
+    deps = [
+        "@com_github_gorilla_mux//:go_default_library",
+    ],
+)
+
+pkg_tar(
+    name = "app-tar",
+    srcs = [":server"],
+    package_dir = "/",
+)
+
+oci_image(
+    name = "server_image",
+    base = "@distroless_base",
+    tars = [":app-tar"],  
+    entrypoint = ["/server"],
+    cmd = [],
+    env = {},
+    exposed_ports = [
+        "8080/tcp",
+    ],    
+)
+
+oci_push(
+    name = "push-image",
+    image = ":server_image",
+    repository = "docker.io/salrashid123/server_image",
+    remote_tags = ["server"]
+)
+
+multi_arch(
+    name = "images-linux-amd64",
+    image = ":server_image",
+    platforms = [
+        "//:linux_amd64",       
+    ],
+)
+
+multi_arch(
+    name = "images-linux-arm64",
+    image = ":server_image",
+    platforms = [
+        "//:linux_arm64",
+    ],
+)
+
+oci_image_index(
+    name = "index",
+    images = [
+        ":images-linux-amd64",
+        ":images-linux-arm64",      
+    ],
+)
+
+
+oci_push(
+    name = "push-image-cross",
+    image = ":index",
+    repository = "docker.io/salrashid123/server_image",
+    remote_tags = ["server-cross"]
+)
+
+
+load("//build:variables.bzl", "IMAGE_REPOSITORY_SETTINGS")
+load("//build/cosign:macros.bzl", "sign_all")
+
+load(":images.bzl", "ALL_IMAGES")
+
+IMAGES_TO_SIGN = ALL_IMAGES
+
+sign_all(
+    name = "sign_all_images",
+    images = {"{registry}/{name}".format(
+        name = image_spec.repository,
+        registry = IMAGE_REPOSITORY_SETTINGS.container_registry,
+    ): image_spec.image for image_spec in IMAGES_TO_SIGN},
+    tags = [
+        "server",
+    ],
+)

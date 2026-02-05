@@ -1,0 +1,5 @@
+exports_files([
+    "import-cosign.key",
+    "import-cosign.pub",
+    "signing_config.json"
+])

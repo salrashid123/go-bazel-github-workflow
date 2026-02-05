@@ -80,16 +80,16 @@ jobs:
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Get Bazel
-        uses: bazel-contrib/setup-bazel@0.15.0
+        uses: bazel-contrib/setup-bazel@0.18.0
         with:
           bazelisk-cache: true
           disk-cache: ${{ github.workflow }}
           repository-cache: true
 
       - name: Bazel Push
-        uses: bazel-contrib/setup-bazel@0.15.0      
+        uses: bazel-contrib/setup-bazel@0.18.0    
         run: bazelisk run app:push-image
 
       - name: Cosign Sign
-        uses: bazel-contrib/setup-bazel@0.15.0      
+        uses: bazel-contrib/setup-bazel@0.18.0 
         run: bazelisk run app:sign_all_images

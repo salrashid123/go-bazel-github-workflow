@@ -45,7 +45,31 @@ Default image is posted to
 Sign locally
 
 ```bash
-bazel run app:sign_all_images --define container_registry=docker.io --define image_repo_prefix=salrashid123 --define image_tag=server
+
+      # - name: Sign images
+      #   env:
+      #     #GCP_KMS_KEY_FOR_SIGNING: "gcpkms://${{ inputs.kms-key-resource-name }}"
+      #     #PUBLIC_KEY: ${{ steps.get-public-key.outputs.encoded_pub_key }}
+      #   run: |
+      #     set -euo pipefail
+      #     targets=(
+      #       "//src/main/docker:sign_all_images"
+      #       "//src/main/docker/panel_exchange_client:sign_all_images"
+      #     )
+      #     common_flags=(
+      #       "--tlog-upload=false"
+      #       "--key=$GCP_KMS_KEY_FOR_SIGNING"
+      #       "-a" "dev.cosignproject.cosign/sigalg=ECDSA_P256_SHA256"
+      #       "-a" "dev.cosignproject.cosign/pub=${PUBLIC_KEY}"
+      #     )
+      #     for target in "${targets[@]}"; do
+      #       bazelisk run "$target" -- "${common_flags[@]}"
+      #     done
+
+
+bazelisk run app:sign_all_images --define container_registry=docker.io --define image_repo_prefix=salrashid123 --define image_tag=server -- -y
+
+
 ```
 
 ### Verify the image
@@ -70,7 +94,7 @@ git add -A
 git commit -m "add code" -S -s
 git push
 
-export TAG=v0.0.12
+export TAG=v0.0.13
 git tag -a $TAG -m "Release $TAG" -s
 git push origin $TAG
 ```

@@ -96,7 +96,7 @@ jobs:
         run: bazelisk run app:push-image
 
       - name: Cosign Sign
-        run: bazelisk run app:sign_all_images --define container_registry=docker.io --define image_repo_prefix=salrashid123 --define image_tag=server
+        run: bazelisk run app:sign_all_images --define container_registry=docker.io --define image_repo_prefix=salrashid123 --define image_tag=server  -- -y
 
       - uses: actions/attest-build-provenance@v2
         with:

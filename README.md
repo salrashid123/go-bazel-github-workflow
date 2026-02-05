@@ -12,6 +12,7 @@ Note, the cosign sample is attributed to [WFA Measurement System](https://github
 ### Build and Test locally
 
 To build and test the image locally
+
 ```bash
 bazel run :gazelle -- update-repos -from_file=go.mod -prune=true -to_macro=repositories.bzl%go_repositories
 
@@ -35,6 +36,10 @@ export IMAGE="docker.io/salrashid123/server_image:server@sha256:d454b76c23edb9f9
 crane  manifest $IMAGE
 ```
 
+Default image is posted to
+
+* [https://hub.docker.com/r/salrashid123/server_image/tags](https://hub.docker.com/r/salrashid123/server_image/tags)
+
 ### Sign the image on dockerhub
 
 Sign locally
@@ -54,6 +59,20 @@ cosign verify $IMAGE     --certificate-oidc-issuer https://token.actions.githubu
 cosign verify $IMAGE     --certificate-oidc-issuer https://github.com/login/oauth   --certificate-identity salrashid123@gmail.com 
 
 cosign verify $IMAGE   --certificate-identity salrashid123@gmail.com  --certificate-oidc-issuer https://accounts.google.com
+```
+
+### Github Workflow
+
+If you want to test the full end to end workflow on github
+
+```bash
+git add -A
+git commit -m "add code" -S -s
+git push
+
+export TAG=v0.0.1
+git tag -a $TAG -m "Release $TAG" -s
+git push origin $TAG
 ```
 
 ---

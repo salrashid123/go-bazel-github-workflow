@@ -7,8 +7,6 @@ load("@gazelle//:def.bzl", "gazelle")
 load("//:transition.bzl", "multi_arch")
 
 
-gazelle(name = "gazelle")
-
 platform(
     name = "linux_arm",
     constraint_values = [

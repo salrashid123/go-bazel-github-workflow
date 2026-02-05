@@ -88,8 +88,8 @@ jobs:
 
       - name: Bazel Push
         uses: bazel-contrib/setup-bazel@0.18.0    
-        run: bazel run app:push-image
+        run: bazelisk run app:push-image
 
       - name: Cosign Sign
         uses: bazel-contrib/setup-bazel@0.18.0 
-        run: bazel run app:sign_all_images
+        run: bazelisk run app:sign_all_images

@@ -45,7 +45,7 @@ Default image is posted to
 Sign locally
 
 ```bash
-bazel run app:sign_all_images --define container_registry=docker.io --define image_repo_prefix=salrashid123 --define image_tag=serverx
+bazel run app:sign_all_images --define container_registry=docker.io --define image_repo_prefix=salrashid123 --define image_tag=server
 ```
 
 ### Verify the image
@@ -70,7 +70,7 @@ git add -A
 git commit -m "add code" -S -s
 git push
 
-export TAG=v0.0.1
+export TAG=v0.0.12
 git tag -a $TAG -m "Release $TAG" -s
 git push origin $TAG
 ```

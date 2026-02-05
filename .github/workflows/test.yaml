@@ -28,14 +28,14 @@ jobs:
         run: go test -v ./...
 
       - name: Get Bazel
-        uses: bazel-contrib/setup-bazel@0.18.0
+        uses: bazel-contrib/setup-bazel@0.15.0
         with:
           bazelisk-cache: true
           disk-cache: ${{ github.workflow }}
           repository-cache: true
 
       - name: Bazel Build
-        run: bazel build app:server
+        run: bazelisk build app:server
 
       - name: Bazel Test
-        run: bazel test app:go_default_test
+        run: bazelisk test app:go_default_test

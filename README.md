@@ -1,6 +1,15 @@
-# Signed contaieners using Bazel and Github workflows 
+# Signed containers using Bazel and Github workflows 
 
-Simple repo that builds a go application in github and then uses `cosign` to sign the image; all within github workflow.
+Simple repo which:
+
+1. builds a go application using `bazel`
+2. creates an oci image using `bazel` 
+3. pushes the image to dockerhub
+4. uses `cosign` to sign the image and add an entry to sigstore transparency log
+
+The code also uses `goreleaser` to generate binaries and sign them for every release.  Ideally bazel is used to generate the binary but i don't know how to automate that into `goreleaser`
+
+All this is done within a github workflow so its auditable end-to-end
 
 ### References
 

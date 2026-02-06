@@ -1,6 +1,6 @@
 # Signed contaieners using Bazel and Github workflows 
 
-Simple repo that builds a go application in github and then uses `cosign` to sign the image.
+Simple repo that builds a go application in github and then uses `cosign` to sign the image; all within github workflow.
 
 ### References
 
@@ -16,12 +16,13 @@ To build and test the image locally
 ```bash
 bazel run :gazelle -- update-repos -from_file=go.mod -prune=true -to_macro=repositories.bzl%go_repositories
 
-bazel run app:server -- -httpport :8080
+#bazel run app:server -- -httpport :8080
 bazelisk run app:server -- -httpport :8080
 
-bazel test app:go_default_test
+#bazel test app:go_default_test
 bazelisk test app:go_default_test
 
+# or using go directly
 go test -v ./...
 ```
 
@@ -42,52 +43,40 @@ Default image is posted to
 
 ### Sign the image on dockerhub
 
-Sign locally
+If you want ot sign locally using bazel
+
 
 ```bash
-
-      # - name: Sign images
-      #   env:
-      #     #GCP_KMS_KEY_FOR_SIGNING: "gcpkms://${{ inputs.kms-key-resource-name }}"
-      #     #PUBLIC_KEY: ${{ steps.get-public-key.outputs.encoded_pub_key }}
-      #   run: |
-      #     set -euo pipefail
-      #     targets=(
-      #       "//src/main/docker:sign_all_images"
-      #       "//src/main/docker/panel_exchange_client:sign_all_images"
-      #     )
-      #     common_flags=(
-      #       "--tlog-upload=false"
-      #       "--key=$GCP_KMS_KEY_FOR_SIGNING"
-      #       "-a" "dev.cosignproject.cosign/sigalg=ECDSA_P256_SHA256"
-      #       "-a" "dev.cosignproject.cosign/pub=${PUBLIC_KEY}"
-      #     )
-      #     for target in "${targets[@]}"; do
-      #       bazelisk run "$target" -- "${common_flags[@]}"
-      #     done
-
-
 bazelisk run app:sign_all_images --define container_registry=docker.io --define image_repo_prefix=salrashid123 --define image_tag=server -- -y
-
-
 ```
 
+see [cosign sign](https://docs.sigstore.dev/cosign/signing/overview/)
+
+
 ### Verify the image
+
+You can use `cosign` to  verify locally too:
 
 ```bash
 export COSIGN_EXPERIMENTAL=1  
 export IMAGE="docker.io/salrashid123/server_image:server@sha256:d454b76c23edb9f9abf0541257dc0e92ee9c16df25d4676ec0946f6beae12ef5"
 
+# for github workflow
 cosign verify $IMAGE     --certificate-oidc-issuer https://token.actions.githubusercontent.com       --certificate-identity-regexp="https://github.com.*"
 
-cosign verify $IMAGE     --certificate-oidc-issuer https://github.com/login/oauth   --certificate-identity salrashid123@gmail.com 
+# for local
+# cosign verify $IMAGE     --certificate-oidc-issuer https://github.com/login/oauth   --certificate-identity salrashid123@gmail.com 
 
-cosign verify $IMAGE   --certificate-identity salrashid123@gmail.com  --certificate-oidc-issuer https://accounts.google.com
+# for google oidc
+# cosign verify $IMAGE   --certificate-identity salrashid123@gmail.com  --certificate-oidc-issuer https://accounts.google.com
 ```
+
+see [Verify image with user-provided trusted chain](https://docs.sigstore.dev/cosign/verifying/verify/)
+
 
 ### Github Workflow
 
-If you want to test the full end to end workflow on github
+If you want to test the full end to end workflow on github, you need to setup the github token and gpg signatures as shown in the `.github/workflows/` folder
 
 ```bash
 git add -A
@@ -102,6 +91,8 @@ git push origin $TAG
 ---
 
 ### Trace
+
+Once the code is pushed, you can recall the entire signature from the log.
 
 ```bash
 $ cosign verify $IMAGE     --certificate-oidc-issuer https://github.com/login/oauth   --certificate-identity salrashid123@gmail.com  | jq '.'

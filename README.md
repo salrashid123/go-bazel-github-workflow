@@ -5,9 +5,8 @@ Simple repo which:
 1. builds a go application using `bazel`
 2. creates an oci image using `bazel` 
 3. pushes the image to dockerhub
-4. uses `cosign` to sign the image and add an entry to sigstore transparency log
-
-The code also uses `goreleaser` to generate binaries and sign them for every release.  Ideally bazel is used to generate the binary but i don't know how to automate that into `goreleaser`
+4. uses `cosign sign` to sign the image and add an entry to sigstore transparency log
+5. uses `cosign sign-blob` for each binary in the releases page.
 
 All this is done within a github workflow so its auditable end-to-end
 
@@ -108,6 +107,8 @@ The github workflow also uses `goreleaser` to generate binarires (you can use ba
 ![images/attestation.png](images/attestation.png)
 
 ### Trace
+
+#### Verify container image
 
 Once the code is pushed, you can recall the entire signature from the log.
 
@@ -398,4 +399,47 @@ $ crane  manifest salrashid123/server_image:sha256-adce22cdd04fa2b012209f2d048c8
     }
   ]
 }
+```
+
+
+#### Verify binary
+
+The github workflow also uses bazel to sign each image usign [cosign sign-blob](https://edu.chainguard.dev/open-source/sigstore/cosign/how-to-sign-blobs-with-cosign/)
+
+If you want to use bazel manually with local certs:
+
+```bash
+### generate binary
+$ bazelisk build  app:build_binary 
+  bazel-bin/app/server_linux_amd64_bin
+  bazel-bin/app/server_linux_arm64_bin
+
+### sign with key
+#### to use this edit app/BUILD.bazel and edit sign_binary rule as commented there
+$ bazelisk build  app:sign_binary
+  bazel-bin/app/server_linux_amd64.sig
+  bazel-bin/app/server_linux_arm64.sig
+
+### a local signature may look like
+
+$ cat bazel-bin/app/server_linux_amd64.sig | jq '.'
+{
+  "mediaType": "application/vnd.dev.sigstore.bundle.v0.3+json",
+  "verificationMaterial": {
+    "publicKey": {
+      "hint": "cka9QDcaiM9PNxTe4aOOEWcFiaRm0y59r4YcwitHqBc="
+    }
+  },
+  "messageSignature": {
+    "messageDigest": {
+      "algorithm": "SHA2_256",
+      "digest": "osUJ/y2M8qoeYTCYLlBZyHS+2UrlOyf8liuihxQLYok="
+    },
+    "signature": "B1XtUbHJHh/se5Np3iXMSWLrtbn29u4Q8IbXy3Y5cTXLjIKQwZO3MnSWjWOczVPOTAWesuEzdW64UQZRc1EAwYH4ZLYg0dmnXVnzEnC88T4+Ov4TmzM2RRSakxhRScQm4cGDv18GdtOKCgSzQhjruhG/ed7mqASaHfNnnqK6Yav/1eSr9c5lGjI4JMCA2LkyKbvN0Rc7/xzOlzWwRBsm0+zNol+OWVaipuSIplX4SV5WiJ7mtKe7MqarQ9ks3Fam8PBo8gcJaK3V+5ovKKYqRqTjv71+R3u2jDDMpFcm/WqvfsFDOCQlyojHVtFtjRfkJlTelGGFBqU37q/iwB4VQQ=="
+  }
+}
+
+### which can be verified locally with the local signing key
+export sig=`cat bazel-bin/app/server_linux_amd64.sig | jq -r '.messageSignature.signature'`
+cosign verify-blob --key certs/import-cosign.pub --signature $sig bazel-bin/app/server_linux_amd64_bin
 ```

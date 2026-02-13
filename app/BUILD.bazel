@@ -76,9 +76,9 @@ genrule(
 
         ## using keyless and upload
         export COSIGN_EXPERIMENTAL=1
-        $(location @cosign_binary//file) sign-blob --yes --signing-config $(location //certs:signing_config.v0.2.json) --bundle $(location server_linux_amd64.sig) $(location :server_linux_amd64)
-        $(location @cosign_binary//file) sign-blob --yes --signing-config $(location //certs:signing_config.v0.2.json) --bundle $(location server_linux_arm64.sig) $(location :server_linux_arm64)
-        $(location @cosign_binary//file) sign-blob --yes --signing-config $(location //certs:signing_config.json) --bundle $(location server_checksums.txt.sig) $(location :server_checksums.txt)
+        $(location @cosign_binary//file) sign-blob --yes --oidc-issuer=https://token.actions.githubusercontent.com  --bundle $(location server_linux_amd64.sig) $(location :server_linux_amd64)
+        $(location @cosign_binary//file) sign-blob --yes --oidc-issuer=https://token.actions.githubusercontent.com  --bundle $(location server_linux_arm64.sig) $(location :server_linux_arm64)
+        $(location @cosign_binary//file) sign-blob --yes --oidc-issuer=https://token.actions.githubusercontent.com  --bundle $(location server_checksums.txt.sig) $(location :server_checksums.txt)
     """,
 )
 

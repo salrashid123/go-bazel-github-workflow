@@ -91,7 +91,7 @@ git add -A
 git commit -m "add code" -S -s
 git push
 
-export TAG=v0.0.14
+export TAG=v0.0.16
 git tag -a $TAG -m "Release $TAG" -s
 git push origin $TAG
 ```

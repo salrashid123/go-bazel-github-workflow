@@ -12,6 +12,7 @@ import (
 
 var (
 	httpport = flag.String("httpport", ":8080", "httpport")
+	version  = "v0.0.16"
 )
 
 const ()
@@ -24,6 +25,8 @@ func fronthandler(w http.ResponseWriter, r *http.Request) {
 func main() {
 
 	flag.Parse()
+
+	fmt.Printf("VERSION: %s\n", version)
 
 	if *httpport == "" {
 		fmt.Fprintln(os.Stderr, "missing -httpport flag (:8080)")

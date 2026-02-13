@@ -91,7 +91,7 @@ git add -A
 git commit -m "add code" -S -s
 git push
 
-export TAG=v0.0.24
+export TAG=v0.0.25
 git tag -a $TAG -m "Release $TAG" -s
 git push origin $TAG
 ```
@@ -403,6 +403,8 @@ $ crane  manifest salrashid123/server_image:sha256-adce22cdd04fa2b012209f2d048c8
 
 
 #### Verify binary
+
+TODO: make this work with github workflows...right now it just uses key pairs
 
 The github workflow also uses bazel to sign each image usign [cosign sign-blob](https://edu.chainguard.dev/open-source/sigstore/cosign/how-to-sign-blobs-with-cosign/)
 

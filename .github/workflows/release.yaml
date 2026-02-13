@@ -98,7 +98,7 @@ jobs:
       - name: create binary checksum
         run: bazelisk build  app:create_checksum
 
-      - name: sign binary artifacts
+      - name: sign binary artifacts    
         run: bazelisk build  app:sign_binary
 
       - name: Create GitHub Release and upload assets

@@ -12,7 +12,7 @@ import (
 
 var (
 	httpport = flag.String("httpport", ":8080", "httpport")
-	version  = "v0.0.22"
+	version  = "v0.0.23"
 )
 
 const ()

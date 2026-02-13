@@ -12,12 +12,12 @@
   ],
   "oidcUrls": [
     {
-      "url": "https://oauth2.sigstore.dev/auth",
+      "url": "https://token.actions.githubusercontent.com",
       "majorApiVersion": 1,
       "validFor": {
         "start": "2022-04-13T20:06:15.000Z"
       },
-      "operator": "sigstore.dev"
+      "operator": "github.com"
     }
   ],
   "rekorTlogUrls": [

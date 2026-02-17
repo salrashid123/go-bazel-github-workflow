@@ -52,33 +52,49 @@ genrule(
 )
 
 genrule(
-    name = "create_checksum",
-    srcs = [":server_linux_amd64_bin",":server_linux_arm64_bin"],
-    outs = ["server_checksums.txt"],
-
-    cmd = """
-        echo  `sha256sum  $(location :server_linux_amd64_bin) | cut -d ' ' -f 1` server_linux_amd64_bin  > $(location :server_checksums.txt)
-        echo  `sha256sum  $(location :server_linux_arm64_bin) | cut -d ' ' -f 1` server_linux_arm64_bin  >> $(location :server_checksums.txt)
-    """,
-)
-
-genrule(
     name = "sign_binary",
-    srcs = [":server_linux_amd64",":server_linux_arm64", ":server_checksums.txt", "//certs:import-cosign.key","//certs:signing_config.json","//certs:signing_config.v0.2.json"],
-    outs = ["server_linux_amd64.sig","server_linux_arm64.sig", "server_checksums.txt.sig"],
+    srcs = [":server_linux_amd64",":server_linux_arm64", "//certs:import-cosign.key","//certs:signing_config.json","//certs:signing_config.v0.2.json"],
+    outs = ["server_linux_amd64.sig","server_linux_arm64.sig"],
     tools = ["@cosign_binary//file"],
     cmd = """
         ## using local cosign cert and key and no tlog upload
         export COSIGN_PASSWORD=""
         $(location @cosign_binary//file) sign-blob --key $(location //certs:import-cosign.key) --signing-config $(location //certs:signing_config.json) --bundle $(location server_linux_amd64.sig) $(location :server_linux_amd64)
         $(location @cosign_binary//file) sign-blob --key $(location //certs:import-cosign.key) --signing-config $(location //certs:signing_config.json) --bundle $(location server_linux_arm64.sig) $(location :server_linux_arm64)
-        $(location @cosign_binary//file) sign-blob --key $(location //certs:import-cosign.key) --signing-config $(location //certs:signing_config.json) --bundle $(location server_checksums.txt.sig) $(location :server_checksums.txt)
 
         ## using keyless and upload
         #export COSIGN_EXPERIMENTAL=1
         #$(location @cosign_binary//file) sign-blob --yes --signing-config $(location //certs:signing_config.v0.2.json) --bundle $(location server_linux_amd64.sig) $(location :server_linux_amd64)
         #$(location @cosign_binary//file) sign-blob --yes --signing-config $(location //certs:signing_config.v0.2.json) --bundle $(location server_linux_arm64.sig) $(location :server_linux_arm64)
-        #$(location @cosign_binary//file) sign-blob --yes --signing-config $(location //certs:signing_config.v0.2.json) --bundle $(location server_checksums.txt.sig) $(location :server_checksums.txt)
+    """,
+)
+
+genrule(
+    name = "create_checksum",
+    srcs = [":server_linux_amd64_bin",":server_linux_arm64_bin", ":server_linux_amd64.sig",":server_linux_arm64.sig"],
+    outs = ["server_checksums.txt"],
+
+    cmd = """
+        echo  `sha256sum  $(location :server_linux_amd64_bin) | cut -d ' ' -f 1` server_linux_amd64_bin > $(location :server_checksums.txt)
+        echo  `sha256sum  $(location :server_linux_amd64.sig) | cut -d ' ' -f 1` server_linux_amd64.sig >> $(location :server_checksums.txt)        
+        echo  `sha256sum  $(location :server_linux_arm64_bin) | cut -d ' ' -f 1` server_linux_arm64_bin >> $(location :server_checksums.txt)
+        echo  `sha256sum  $(location :server_linux_arm64.sig) | cut -d ' ' -f 1` server_linux_arm64.sig >> $(location :server_checksums.txt)        
+    """,
+)
+
+genrule(
+    name = "sign_checksum",
+    srcs = [":server_checksums.txt", "//certs:import-cosign.key","//certs:signing_config.json","//certs:signing_config.v0.2.json"],
+    outs = ["server_checksums.txt.sig"],
+    tools = ["@cosign_binary//file"],
+    cmd = """
+        ## using local cosign cert and key and no tlog upload
+        export COSIGN_PASSWORD=""
+        $(location @cosign_binary//file) sign-blob --key $(location //certs:import-cosign.key) --signing-config $(location //certs:signing_config.json) --bundle $(location :server_checksums.txt.sig) $(location :server_checksums.txt)
+
+        ## using keyless and upload
+        #export COSIGN_EXPERIMENTAL=1
+        #$(location @cosign_binary//file) sign-blob --yes --signing-config $(location //certs:signing_config.v0.2.json) --bundle $(location :server_checksums.txt.sig) $(location :server_checksums.txt)
     """,
 )
 

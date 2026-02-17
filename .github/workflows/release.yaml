@@ -94,12 +94,15 @@ jobs:
 
       - name: build binary artifacts
         run: bazelisk build  app:build_binary
-        
-      - name: create binary checksum
-        run: bazelisk build  app:create_checksum
 
       - name: sign binary artifacts    
         run: bazelisk build  app:sign_binary
+
+      - name: create checksum
+        run: bazelisk build  app:create_checksum
+
+      - name: sign checksum
+        run: bazelisk build  app:sign_checksum             
 
       - name: Create GitHub Release and upload assets
         uses: softprops/action-gh-release@v1

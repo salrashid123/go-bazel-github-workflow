@@ -137,13 +137,6 @@ oci_image(
     ],    
 )
 
-oci_push(
-    name = "push-image",
-    image = ":server_image",
-    repository = "docker.io/salrashid123/server_image",
-    remote_tags = ["server"]
-)
-
 multi_arch(
     name = "images-linux-amd64",
     image = ":server_image",
@@ -167,6 +160,14 @@ oci_image_index(
         ":images-linux-arm64",      
     ],
 )
+
+oci_push(
+    name = "push-image",
+    image = ":index",
+    repository = "docker.io/salrashid123/server_image",
+    remote_tags = ["server"]
+)
+
 
 load("//build:variables.bzl", "IMAGE_REPOSITORY_SETTINGS")
 load("//build/cosign:macros.bzl", "sign_all")

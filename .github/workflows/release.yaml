@@ -99,7 +99,7 @@ jobs:
         run: bazelisk build  app:sign_binary --action_env=ACTIONS_ID_TOKEN_REQUEST_TOKEN=$ACTIONS_ID_TOKEN_REQUEST_TOKEN --action_env=ACTIONS_ID_TOKEN_REQUEST_URL=$ACTIONS_ID_TOKEN_REQUEST_URL
 
       - name: create checksum
-        run: bazelisk build  app:create_checksum
+        run: bazelisk build  app:create_checksum --action_env=ACTIONS_ID_TOKEN_REQUEST_TOKEN=$ACTIONS_ID_TOKEN_REQUEST_TOKEN --action_env=ACTIONS_ID_TOKEN_REQUEST_URL=$ACTIONS_ID_TOKEN_REQUEST_URL
 
       - name: sign checksum
         run: bazelisk build  app:sign_checksum --action_env=ACTIONS_ID_TOKEN_REQUEST_TOKEN=$ACTIONS_ID_TOKEN_REQUEST_TOKEN --action_env=ACTIONS_ID_TOKEN_REQUEST_URL=$ACTIONS_ID_TOKEN_REQUEST_URL             

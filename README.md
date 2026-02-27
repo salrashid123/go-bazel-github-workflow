@@ -19,7 +19,7 @@ Note, the cosign sample is attributed to [WFA Measurement System](https://github
 
 ### Build and Test locally
 
-To build and test the image locally
+To run and test locally,
 
 ```bash
 bazel run :gazelle -- update-repos -from_file=go.mod -prune=true -to_macro=repositories.bzl%go_repositories
@@ -36,7 +36,12 @@ go test -v ./...
 
 ### Push the image to DockerHub
 
-To push the image locally
+To build and test the image locally, you'll first need to edit [app/BUILD.bazel](app/BUILD.bazel) the `gen_rule` for `sign_binary` and `sign_checksum` to only use the local cert.
+
+Then if you want to push, edit the `oci_push`, `push-image` target repo.
+
+Note that the image below is a multi-arch oci image index which is what is ultimately signed.
+
 ```bash
 bazelisk run app:push-image
 

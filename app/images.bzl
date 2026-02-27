@@ -21,7 +21,7 @@ _PREFIX = IMAGE_REPOSITORY_SETTINGS.repository_prefix
 COMMON_IMAGES = [
     struct(
         name = "default_server_image",
-        image = "//app:server_image",
+        image = "//app:index",
         repository = _PREFIX + "/server_image",
     ),
 ]

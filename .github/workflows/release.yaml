@@ -96,13 +96,13 @@ jobs:
         run: bazelisk build  app:build_binary
 
       - name: sign binary artifacts    
-        run: bazelisk build  app:sign_binary
+        run: bazelisk build  app:sign_binary --action_env=ACTIONS_ID_TOKEN_REQUEST_TOKEN=$ACTIONS_ID_TOKEN_REQUEST_TOKEN --action_env=ACTIONS_ID_TOKEN_REQUEST_URL=$ACTIONS_ID_TOKEN_REQUEST_URL
 
       - name: create checksum
         run: bazelisk build  app:create_checksum
 
       - name: sign checksum
-        run: bazelisk build  app:sign_checksum             
+        run: bazelisk build  app:sign_checksum --action_env=ACTIONS_ID_TOKEN_REQUEST_TOKEN=$ACTIONS_ID_TOKEN_REQUEST_TOKEN --action_env=ACTIONS_ID_TOKEN_REQUEST_URL=$ACTIONS_ID_TOKEN_REQUEST_URL             
 
       - name: Create GitHub Release and upload assets
         uses: softprops/action-gh-release@v1

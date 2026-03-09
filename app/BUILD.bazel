@@ -1,7 +1,7 @@
 load("@rules_go//go:def.bzl", "go_binary", "go_library", "go_cross_binary", "go_test")
 
 load("@rules_pkg//:pkg.bzl", "pkg_tar")
-load("@rules_oci//oci:defs.bzl", "oci_image", "oci_push",  "oci_image_index")
+load("@rules_oci//oci:defs.bzl", "oci_image", "oci_push",  "oci_image_index", "oci_load")
 
 load("@gazelle//:def.bzl", "gazelle")
 load("//:transition.bzl", "multi_arch")
@@ -185,4 +185,75 @@ sign_all(
     tags = [
         "server",
     ],
+)
+
+oci_image(
+    name = "custom_server_image",
+    base = "@distroless_base",
+    tars = ["@custom_debian_packages//:flat",":app-tar"],  
+    entrypoint = ["/server"],
+    cmd = [],
+    env = {},
+    exposed_ports = [
+        "8080/tcp",
+    ],    
+)
+
+
+genrule(
+    name = "extract_and_prep",
+    srcs = ["@skopeo_deb//file"], 
+    outs = ["skopeo"],
+    cmd = """
+    ar x $(location @skopeo_deb//file)
+    tar -xf data.tar.xz
+    cp usr/bin/skopeo $(location :skopeo)
+    """,
+)
+
+genrule(
+    name = "encrypt_image",
+    srcs = [":server_image", ":extract_and_prep", "//certs:pub-ml-kem-768.pem", "//certs:tls-ca-chain.pem", "@oci_crypt_binary//file"],
+    outs = ["encrypted_oci_image.tar"],
+    executable = False,
+    cmd = """
+
+    export PQPUB=`openssl enc -base64 -A -in $(location //certs:pub-ml-kem-768.pem)`
+
+    cat <<EOF > ocicrypt.json
+{
+"key-providers": {
+    "pqccrypt": {
+    "cmd": {
+        "path": "$(location @oci_crypt_binary//file)",
+        "args": [   
+        "--pqcURI","pqc://pq?pub=$$PQPUB"       
+        ]
+    }
+    }
+}
+}
+EOF
+
+    export OCICRYPT_KEYPROVIDER_CONFIG=ocicrypt.json
+    export SSL_CERT_FILE=$(location //certs:tls-ca-chain.pem)
+
+cat << EOF > /tmp/authfile.json
+{
+	"auths": {
+		"https://index.docker.io/v1/": {
+			"auth": "redacted"
+		}
+	}
+}
+EOF
+
+    #$(location :extract_and_prep) --tmpdir=/tmp/ login  --authfile=/tmp/authfile.json docker.io
+    #$(location :extract_and_prep) --tmpdir=/tmp/ copy --all --encrypt-layer=-1  --encryption-key="provider:pqccrypt:pqc://pq?pub=$$PQPUB"  oci:$(location :server_image) docker://docker.io/salrashid123/server_image:encrypted
+
+    $(location :extract_and_prep) --tmpdir=/tmp/ copy --all --encrypt-layer=-1  --encryption-key="provider:pqccrypt:pqc://pq?pub=$$PQPUB"  oci:$(location :server_image) docker://registry.domain.com:5000/app:encrypted
+
+    $(location :extract_and_prep) --tmpdir=/tmp/ copy --all --encrypt-layer=-1  --encryption-key="provider:pqccrypt:pqc://pq?pub=$$PQPUB"  oci:$(location :server_image) oci-archive:$(location :encrypted_oci_image.tar)
+     
+    """,
 )

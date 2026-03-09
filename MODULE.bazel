@@ -12,6 +12,7 @@ bazel_dep(name = "bazel_skylib", version = "1.9.0")
 bazel_dep(name = "aspect_bazel_lib", version = "2.22.5")
 bazel_dep(name = "rules_multirun", version = "0.12.0")
 bazel_dep(name = "rules_shell", version = "0.6.1")
+bazel_dep(name = "rules_distroless", version = "0.5.1")
 
 python = use_extension("@rules_python//python/extensions:python.bzl", "python")
 python.toolchain(
@@ -62,3 +63,31 @@ single_version_override(
         "//build/cosign/patches:sign_dot_bzl.patch",
     ],
 )
+
+
+http_file(
+    name = "skopeo_deb",
+    executable = False,
+    sha256 = "ac88e700da5f74efc93af94ea2ba83195a8db45c91fb0d0aefb0b6ed46287b26",
+    urls = ["https://ftp.debian.org/debian/pool/main/s/skopeo/skopeo_1.21.0~pre1-2_amd64.deb"],
+)
+
+http_file(
+    name = "oci_crypt_binary",
+    executable = True,
+    #sha256 = "7316efdb907892065a7a7efcd1b07bc1cf45d2617cfdba505f720f881d3338de",
+    #urls = ["file:///tmp/pqc_oci_crypt"], 
+
+    sha256 = "38d7e92da6a61a1ae731439ffc0614eca1ba39c05af2853860460418790f50f1",
+    urls = ["https://github.com/salrashid123/ocicrypt-pqc-keyprovider/releases/download/v0.0.3/ocicrypt-pqc-keyprovider_0.0.3_linux_amd64"],
+)
+
+apt = use_extension("@rules_distroless//apt:extensions.bzl", "apt")
+
+apt.install(
+    name = "custom_debian_packages",
+    manifest = "//certs:apt_packages.yaml",
+    nolock = True, 
+)
+
+use_repo(apt, "custom_debian_packages")

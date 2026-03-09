@@ -1,0 +1,17 @@
+version: 1
+
+sources:
+  - channel: bookworm main contrib
+    urls:
+      - https://snapshot.debian.org/archive/debian/20240210T223313Z
+  - channel: bookworm-security main
+    url: https://snapshot.debian.org/archive/debian-security/20240210T223313Z
+  - channel: bookworm-updates main
+    url: https://snapshot.debian.org/archive/debian/20240210T223313Z/
+
+archs:
+  - "amd64"
+  - "arm64"
+
+packages:
+  - "ca-certificates"

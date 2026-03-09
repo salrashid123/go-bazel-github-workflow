@@ -2,5 +2,9 @@ exports_files([
     "import-cosign.key",
     "import-cosign.pub",
     "signing_config.json",
-    "signing_config.v0.2.json"
+    "signing_config.v0.2.json",
+    "apt_packages.yaml",
+    "pub-ml-kem-768.pem",
+    "ocicrypt_encrypt.tmpl",
+    "tls-ca-chain.pem",
 ])

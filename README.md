@@ -8,6 +8,8 @@ Simple repo which:
 4. uses `cosign sign` to sign the image and add an entry to sigstore transparency log
 5. uses `cosign sign-blob` for each binary in the releases page.
 
+Optionally, this repo also shows how to use `bazel` to encrypt a container layer using [OCICrypt Container Image Encryption using Post Quantum Cryptography](https://github.com/salrashid123/ocicrypt-pqc-keyprovider)
+
 All this is done within a github workflow so its auditable end-to-end
 
 ### References
@@ -564,5 +566,162 @@ $ cosign verify-blob --certificate-oidc-issuer https://token.actions.githubuserc
     --bundle server_linux_amd64.sig server_linux_amd64_bin --verbose
 Verified OK
 
+```
+
+---
+
+#### Optional variants
+
+##### Build custom image locally
+
+If you want to generate an image which uses a customer image with addtional packages,
+
+first startup a local docker registry and export the full path to its certificates
+```bash
+git clone https://github.com/salrashid123/ocicrypt-pqc-keyprovider.git
+cd ocicrypt-pqc-keyprovider/example/
+
+docker run  -p 5000:5000 -v `pwd`/certs:/certs \
+  -e REGISTRY_HTTP_TLS_CERTIFICATE=/certs/localhost.crt \
+  -e REGISTRY_HTTP_TLS_KEY=/certs/localhost.key  docker.io/registry:2
+
+export SSL_CERT_FILE=`pwd`/certs/tls-ca-chain.pem
+```
+
+The following builds a custom base image with updated ca-certs package descirbed in `certs/apt_package.yaml`
+
+```bash
+### build the custom image
+bazelisk build  app:custom_server_image
+
+### the output is a directory with the oci data so convert it to an archive
+skopeo copy oci:./bazel-bin/app/custom_server_image oci-archive:/tmp/app-oci-archive.tar
+
+### copy the oci folder to the local registry
+skopeo copy oci:./bazel-bin/app/custom_server_image docker://registry.domain.com:5000/app
+
+### copy the oci folder to a local docker daemon
+skopeo copy oci:./bazel-bin/app/custom_server_image docker-daemon:app:latest
+
+### inspect the oci image on the local registry
+skopeo inspect  docker://registry.domain.com:5000/app:latest
+
+### run
+docker run app:latest
+```
+
+##### Encrypted Containers (ocicrypt)
+
+This repo also shows a way to use bazel to encrypt a container image using `ocicrypt` plugin for
+
+* [OCICrypt Container Image Post Quantum Cryptography Provider](https://github.com/salrashid123/ocicrypt-pqc-keyprovider)
+
+With this, the image is generate and encrypted with a `MLKEM` public key (or rather a derived key from the shared secret).  From there, the generated image is encrypted and can only get decrypted if someone has the private key
+
+
+To set this up and test locally, just startup a local registry first
+```bash
+git clone https://github.com/salrashid123/ocicrypt-pqc-keyprovider.git
+cd ocicrypt-pqc-keyprovider/example
+
+docker run  -p 5000:5000 -v `pwd`/certs:/certs  \
+   -e REGISTRY_HTTP_TLS_CERTIFICATE=/certs/localhost.crt \
+    -e REGISTRY_HTTP_TLS_KEY=/certs/localhost.key  docker.io/registry:2
+
+### export the env vars pointing to the ocicrypt configuration 
+### as well as the certificate chain used by the registry
+export SSL_CERT_FILE=`pwd`/certs/tls-ca-chain.pem
+
+### now download *any* image and save as docker archive
+docker save -o /tmp/app-docker-archive.tar  docker.io/salrashid123/app
+
+### acquire the MLKEM public key for use later
+
+### --- encrypt
+
+export PQPUB=`openssl enc -base64 -A -in certs/pub-ml-kem-768.pem`
+envsubst < "ocicrypt_encrypt.tmpl" > "ocicrypt_encrypt.json"
+
+export OCICRYPT_KEYPROVIDER_CONFIG=`pwd`/ocicrypt_encrypt.json
+
+
+### now copy the docker archive image to the local registry and encrypt the last layer only
+skopeo copy --all  --encrypt-layer=-1  \
+   --encryption-key="provider:pqccrypt:pqc://pq?pub=$PQPUB" \
+    docker-archive:/tmp/app-docker-archive.tar  docker://registry.domain.com:5000/app:encrypted
+
+### you can also generate the oci image locally and push its encrypted form
+bazelisk build  app:custom_server_image
+skopeo copy oci:./bazel-bin/app/custom_server_image oci-archive:/tmp/app-oci-archive.tar
+skopeo copy --all  --encrypt-layer=-1  \
+   --encryption-key="provider:pqccrypt:pqc://pq?pub=$PQPUB" \
+    oci-archive:/tmp/app-oci-archive.tar  docker://registry.domain.com:5000/app:encrypted
+
+### inspect the local encrypted image
+skopeo inspect docker://registry.domain.com:5000/app:encrypted
+
+### pull the image if you want
+docker pull registry.domain.com:5000/app:encrypted
+skopeo inspect  docker://registry.domain.com:5000/app:encrypted
+skopeo inspect docker://docker.io/salrashid123/server_image:encrypted
+
+docker run registry.domain.com:5000/app:encrypted
+      Unable to find image 'registry.domain.com:5000/app:encrypted' locally
+      encrypted: Pulling from app
+      688513194d7a: Already exists 
+      bfb59b82a9b6: Already exists 
+      efa9d1d5d3a2: Already exists 
+      a62778643d56: Already exists 
+      7c12895b777b: Already exists 
+      3214acf345c0: Already exists 
+      5664b15f108b: Already exists 
+      0bab15eea81d: Already exists 
+      4aa0ea1413d3: Already exists 
+      da7816fa955e: Already exists 
+      9aee425378d2: Already exists 
+      701c983262e9: Already exists 
+      221438ca359c: Already exists 
+      fa945d655b5a: Extracting [==================================================>]  2.431MB/2.431MB
+      docker: failed to register layer: archive/tar: invalid tar header
+
+### --- decrypt
+
+### to decrypt using the MLKEM private key:
+cd ocicrypt-pqc-keyprovider/example/
+export KEY_PATH="file:///`pwd`/certs/priv-ml-kem-768-bare-seed.pem"
+export PQPUB=`openssl enc -base64 -A -in certs/pub-ml-kem-768.pem`
+envsubst < "ocicrypt_decrypt.tmpl" > "ocicrypt_decrypt.json"
+export OCICRYPT_KEYPROVIDER_CONFIG=`pwd`/ocicrypt_decrypt.json
+
+skopeo copy \
+  --decryption-key=provider:pqccrypt:pqc://pq?key=file://`pwd`/certs/priv-ml-kem-768-bare-seed.pem \
+   docker://registry.domain.com:5000/app:encrypted docker://registry.domain.com:5000/app:decrypted
+skopeo inspect docker://registry.domain.com:5000/app:decrypted
+
+docker run registry.domain.com:5000/app:decrypted
+      Unable to find image 'registry.domain.com:5000/app:decrypted' locally
+      decrypted: Pulling from app
+      688513194d7a: Already exists 
+      bfb59b82a9b6: Already exists 
+      efa9d1d5d3a2: Already exists 
+      a62778643d56: Already exists 
+      7c12895b777b: Already exists 
+      3214acf345c0: Already exists 
+      5664b15f108b: Already exists 
+      0bab15eea81d: Already exists 
+      4aa0ea1413d3: Already exists 
+      da7816fa955e: Already exists 
+      9aee425378d2: Already exists 
+      701c983262e9: Already exists 
+      221438ca359c: Already exists 
+      e04c90f6ce3f: Already exists 
+      Digest: sha256:0f4b7f89c239fe84279dc86bc99f2f2ac96cb287fae763b625886d618db1d2e6
+      Status: Downloaded newer image for registry.domain.com:5000/app:decrypted
+      VERSION: v0.0.30
+      starting server
+
+
+### finally to use bazel to build, encrypt and push the image to the local regsitry:
+bazelisk build  app:encrypt_image
 ```
 
